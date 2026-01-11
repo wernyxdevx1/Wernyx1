@@ -1,0 +1,196 @@
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LP = Players.LocalPlayer
+local Humanoid, HRP
+
+local function getChar()
+   local char = LP.Character or LP.CharacterAdded:Wait()
+   Humanoid = char:WaitForChild("Humanoid")
+   HRP = char:WaitForChild("HumanoidRootPart")
+end
+getChar()
+LP.CharacterAdded:Connect(getChar)
+
+local Window = Rayfield:CreateWindow({
+   Name = "Wernyx Hub",
+   LoadingTitle = "Wernyx Hub",
+   LoadingSubtitle = "Rayfield UI",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "WernyxHub",
+      FileName = "Config"
+   }
+})
+
+local MainTab = Window:CreateTab("Main", 4483362458)
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+
+local originalLighting = {
+   Brightness = Lighting.Brightness,
+   ClockTime = Lighting.ClockTime,
+   GlobalShadows = Lighting.GlobalShadows,
+   FogEnd = Lighting.FogEnd,
+   Ambient = Lighting.Ambient,
+   OutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+MainTab:CreateToggle({
+   Name = "Night Vision",
+   CurrentValue = false,
+   Callback = function(v)
+      if v then
+         Lighting.Brightness = 4
+         Lighting.ClockTime = 12
+         Lighting.GlobalShadows = false
+         Lighting.FogEnd = 100000
+         Lighting.Ambient = Color3.new(1,1,1)
+         Lighting.OutdoorAmbient = Color3.new(1,1,1)
+         for _,x in pairs(Lighting:GetChildren()) do
+            if x:IsA("Atmosphere") or x:IsA("BlurEffect")
+            or x:IsA("SunRaysEffect") or x:IsA("BloomEffect")
+            or x:IsA("ColorCorrectionEffect") or x:IsA("DepthOfFieldEffect") then
+               x.Enabled = false
+            end
+         end
+      else
+         for i,vv in pairs(originalLighting) do
+            Lighting[i] = vv
+         end
+         for _,x in pairs(Lighting:GetChildren()) do
+            if x:IsA("Atmosphere") or x:IsA("BlurEffect")
+            or x:IsA("SunRaysEffect") or x:IsA("BloomEffect")
+            or x:IsA("ColorCorrectionEffect") or x:IsA("DepthOfFieldEffect") then
+               x.Enabled = true
+            end
+         end
+      end
+   end
+})
+
+PlayerTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 200},
+   Increment = 1,
+   CurrentValue = 16,
+   Callback = function(v)
+      Humanoid.WalkSpeed = v
+   end
+})
+
+PlayerTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 300},
+   Increment = 5,
+   CurrentValue = 50,
+   Callback = function(v)
+      Humanoid.JumpPower = v
+   end
+})
+
+local infJump = false
+PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Callback = function(v)
+      infJump = v
+   end
+})
+
+UIS.JumpRequest:Connect(function()
+   if infJump then
+      Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+   end
+end)
+
+local noclip = false
+PlayerTab:CreateToggle({
+   Name = "NoClip",
+   CurrentValue = false,
+   Callback = function(v)
+      noclip = v
+   end
+})
+
+RunService.Stepped:Connect(function()
+   if noclip and LP.Character then
+      for _,p in pairs(LP.Character:GetDescendants()) do
+         if p:IsA("BasePart") then
+            p.CanCollide = false
+         end
+      end
+   end
+end)
+
+-- ===== AIR WALK (ĐI TRÊN KHÔNG) =====
+local airWalk = false
+local airPart
+local airConn
+
+PlayerTab:CreateToggle({
+   Name = "Air Walk",
+   CurrentValue = false,
+   Callback = function(v)
+      airWalk = v
+      local char = LP.Character or LP.CharacterAdded:Wait()
+      local hrp = char:WaitForChild("HumanoidRootPart")
+      local hum = char:WaitForChild("Humanoid")
+
+      if v then
+         airPart = Instance.new("Part")
+         airPart.Size = Vector3.new(12,1,12)
+         airPart.Anchored = true
+         airPart.CanCollide = true
+         airPart.Transparency = 1
+         airPart.Parent = workspace
+
+         airConn = RunService.RenderStepped:Connect(function()
+            if airWalk and hrp then
+               airPart.CFrame = hrp.CFrame * CFrame.new(0,-3.5,0)
+               hum:ChangeState(Enum.HumanoidStateType.Running)
+            end
+         end)
+      else
+         if airConn then airConn:Disconnect() end
+         if airPart then airPart:Destroy() end
+      end
+   end
+})
+
+PlayerTab:CreateSlider({
+   Name = "Camera FOV",
+   Range = {70, 120},
+   Increment = 1,
+   CurrentValue = workspace.CurrentCamera.FieldOfView,
+   Callback = function(v)
+      workspace.CurrentCamera.FieldOfView = v
+   end
+})
+
+PlayerTab:CreateSlider({
+   Name = "Gravity",
+   Range = {0, 196},
+   Increment = 1,
+   CurrentValue = workspace.Gravity,
+   Callback = function(v)
+      workspace.Gravity = v
+   end
+})
+
+PlayerTab:CreateToggle({
+   Name = "Anchor Character",
+   CurrentValue = false,
+   Callback = function(v)
+      HRP.Anchored = v
+   end
+})
+
+PlayerTab:CreateButton({
+   Name = "Reset Character",
+   Callback = function()
+      Humanoid.Health = 0
+   end
+})
