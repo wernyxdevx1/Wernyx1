@@ -1,0 +1,75 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+local function getChar()
+	local c = player.Character or player.CharacterAdded:Wait()
+	return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "ShiftLockUI"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = CoreGui
+
+local btn = Instance.new("ImageButton")
+btn.Size = UDim2.fromOffset(52,52)
+btn.Position = UDim2.new(1,-130,1,-40)
+btn.AnchorPoint = Vector2.new(0.5,0.5)
+btn.BackgroundTransparency = 1
+btn.Image = "rbxasset://textures/ui/mouseLock_off.png"
+btn.AutoButtonColor = false
+btn.Parent = gui
+
+local enabled = false
+local rotateConn
+
+local function enable()
+	local _, hum, hrp = getChar()
+	enabled = true
+	hum.AutoRotate = false
+
+	rotateConn = RunService.RenderStepped:Connect(function()
+		local lv = camera.CFrame.LookVector
+		local flat = Vector3.new(lv.X, 0, lv.Z)
+		if flat.Magnitude > 0.01 then
+			hrp.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flat)
+		end
+	end)
+
+	btn.Image = "rbxasset://textures/ui/mouseLock_on.png"
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+end
+
+local function disable()
+	local _, hum = getChar()
+	enabled = false
+	hum.AutoRotate = true
+	if rotateConn then
+		rotateConn:Disconnect()
+		rotateConn = nil
+	end
+	btn.Image = "rbxasset://textures/ui/mouseLock_off.png"
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+end
+
+btn.MouseButton1Click:Connect(function()
+	if enabled then
+		disable()
+	else
+		enable()
+	end
+end)
+
+player.CharacterAdded:Connect(function()
+	task.wait(0.2)
+	if enabled then
+		enable()
+	end
+end)
